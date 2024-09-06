@@ -1,0 +1,13 @@
+name: silentdust
+
+services:
+  web:
+    build: .
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/node
+      - /node/node_modules
+    environment:
+      NODE_ENV: development
+      APP_PORT: 4000
