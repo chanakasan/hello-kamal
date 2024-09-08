@@ -1,0 +1,64 @@
+service: silentdust
+
+image: chanakasan/hellokamal91
+
+traefik:
+  image: "traefik:v2.9"
+  options:
+    publish:
+      # - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volume:
+      - "./logs:/logs"
+      - "./letsencrypt:/letsencrypt"
+  args:
+    # dashbaord
+    api.dashboard: true
+    api.insecure: true
+    # logging
+    log.level: DEBUG
+    log.filePath: /logs/traefik.log
+    log.format: json
+    # entry
+    entryPoints.web_1.address: ":80"
+    entryPoints.websecure_1.address: ":443"
+    # certs
+    certificatesresolvers.res1.acme.email: chanakasan@gmail.com
+    certificatesresolvers.res1.acme.storage: /letsencrypt/acme.json
+    # certificatesresolvers.res1.acme.caserver: https://acme-staging-v02api.letsencrypt.org/directory"
+    certificatesresolvers.res1.acme.httpchallenge: true
+    certificatesresolvers.res1.acme.httpchallenge.entrypoint: web_1
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['HOST_IP'] %>
+    labels:
+      traefik.enable: true
+      traefik.http.services.serv_1.loadbalancer.server.port: 4000
+      # traefik.http.routers.app_1.rule: Path(`/`)
+      traefik.http.routers.app_1.rule: Host(`<%= ENV['HOST_DOMAIN'] %>`)
+      traefik.http.routers.app_1.entrypoints: websecure_1
+      traefik.http.routers.app_1.service: serv_1
+      traefik.http.routers.app_1.tls.certresolver: res1
+
+registry:
+  username: chanakasan
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    APP_PORT: 4000
+  secret:
+    - SECRET_VAR_ONE
+
+builder:
+  multiarch: false
+
+healthcheck:
+  path: /up
+  port: 4000
+  max_attempts: 3
+  cmd: node -v
